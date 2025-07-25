@@ -12,10 +12,10 @@ services:
       # - "8080:8080" # Traefik Dashboard'a dışarıdan erişmek isterseniz bu portu açın.
                       # Güvenlik nedeniyle üretimde kapalı tutulması önerilir.
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro # Docker API'sine erişim
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro # Statik Traefik konfigürasyonu
-      - ./traefik/dynamic.yaml:/etc/traefik/dynamic.yaml:ro # Dinamik Traefik konfigürasyonu
-      - traefik_acme_data:/etc/traefik/acme.json # Let's Encrypt sertifikaları ve durumu için kalıcı depolama
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+      - ./traefik/dynamic.yaml:/etc/traefik/dynamic.yaml
+      - ./traefik/acme.json:/etc/traefik/acme.json
     environment:
       # Let's Encrypt DNS Challenge için DigitalOcean API token'ı
       - DO_AUTH_TOKEN=${DIGITALOCEAN_API_TOKEN}
@@ -103,10 +103,11 @@ services:
 # Ortak ağ tanımı
 networks:
   traefik_network:
-    external: true # Traefik'in dışarıdan erişilebilir ağını kullan
+    driver: bridge
+    # external: true # Traefik'in dışarıdan erişilebilir ağını kullan
 
 # Kalıcı veri depolama için Docker Volume'leri
 volumes:
   postgres_data: # PostgreSQL verileri için
   minio_data:    # MinIO verileri için
-  traefik_acme_data: # Traefik Let's Encrypt sertifikaları için
+  # traefik_acme_data: # Traefik Let's Encrypt sertifikaları için
