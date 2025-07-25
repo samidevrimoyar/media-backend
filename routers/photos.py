@@ -14,6 +14,11 @@ from models.photo import Photo, PhotoResponse # Photo modeli ve yanıt şeması
 from routers.auth import get_current_user, get_current_admin_user # Kimlik doğrulama bağımlılıkları
 from storage import upload_file, get_presigned_url, delete_file # MinIO depolama işlevleri
 
+# Loglama için
+import logging
+logger = logging.getLogger(__name__)
+
+
 router = APIRouter(
     prefix="/photos", # Tüm endpoint'ler /photos ile başlayacak
     tags=["Photos"], # Swagger UI'da grup adı
@@ -64,19 +69,22 @@ async def upload_photo(
     # Ön-imzalı URL oluştur ve yanıtla
     photo_url = get_presigned_url(new_photo.object_name)
     if not photo_url:
-        # Eğer URL oluşturulamazsa bile veritabanı kaydı kalsın, manuel düzeltilebilir
-        # Veya burada bir hata loglayıp fotoğrafı da silebiliriz.
-        # Şimdilik, URL yoksa boş dönsün veya hata fırlatsın.
+        logger.error(f"Failed to generate presigned URL for {new_photo.object_name} after successful upload.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Photo uploaded but failed to generate access URL."
         )
 
-    # Pydantic yanıt modeline gerekli bilgileri ekle
-    # owner_username alanını manuel olarak dolduruyoruz.
-    response_data = PhotoResponse.model_validate(new_photo)
-    response_data.url = photo_url
-    response_data.owner_username = current_user.username # Sahip kullanıcı adını ekle
+    # Pydantic yanıt modelini, tüm gerekli alanları manuel olarak sağlayarak oluşturun.
+    # new_photo'yu doğrudan PhotoResponse'a vermek yerine, alanları eşleştirelim.
+    response_data = PhotoResponse(
+        id=new_photo.id,
+        object_name=new_photo.object_name,
+        url=photo_url, # URL'i burada sağlıyoruz
+        uploaded_at=new_photo.uploaded_at,
+        owner_id=new_photo.owner_id,
+        owner_username=current_user.username # Sahip kullanıcı adını ekle
+    )
 
     return response_data
 
@@ -114,10 +122,15 @@ async def list_photos(
     for photo in photos:
         photo_url = get_presigned_url(photo.object_name)
         if photo_url:
-            photo_response = PhotoResponse.model_validate(photo)
-            photo_response.url = photo_url
-            if photo.owner:
-                photo_response.owner_username = photo.owner.username
+            # PhotoResponse'ı manuel olarak doldur
+            photo_response = PhotoResponse(
+                id=photo.id,
+                object_name=photo.object_name,
+                url=photo_url,
+                uploaded_at=photo.uploaded_at,
+                owner_id=photo.owner_id,
+                owner_username=photo.owner.username if photo.owner else None
+            )
             response_photos.append(photo_response)
         else:
             logger.warning(f"Could not generate URL for photo ID {photo.id}. Skipping.")
@@ -146,15 +159,21 @@ async def get_photo(
 
     photo_url = get_presigned_url(photo.object_name)
     if not photo_url:
+        logger.error(f"Failed to generate presigned URL for photo ID {photo.id}.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate URL for photo."
         )
 
-    response_data = PhotoResponse.model_validate(photo)
-    response_data.url = photo_url
-    if photo.owner:
-        response_data.owner_username = photo.owner.username
+    # PhotoResponse'ı manuel olarak doldur
+    response_data = PhotoResponse(
+        id=photo.id,
+        object_name=photo.object_name,
+        url=photo_url,
+        uploaded_at=photo.uploaded_at,
+        owner_id=photo.owner_id,
+        owner_username=photo.owner.username if photo.owner else None
+    )
 
     return response_data
 
@@ -181,6 +200,7 @@ async def delete_photo(
 
     # MinIO'dan dosyayı sil
     if not delete_file(photo_to_delete.object_name):
+        logger.error(f"Failed to delete file {photo_to_delete.object_name} from MinIO.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete photo from storage."
