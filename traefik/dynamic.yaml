@@ -5,7 +5,7 @@ http:
   routers:
     # FastAPI Backend için Router
     backend-router:
-      rule: "Host(`api.${DOMAIN}`)" # api.superisi.net gibi gelen istekleri yakalar
+      rule: "Host(`api.superisi.net`)" # api.superisi.net gibi gelen istekleri yakalar
       entryPoints:
         - "websecure" # HTTPS (443 portu) üzerinden dinler
       service: backend-service # İstekleri 'backend-service'e yönlendirir
@@ -14,7 +14,7 @@ http:
 
     # MinIO Konsolu için Router
     minio-router:
-      rule: "Host(`minio.${DOMAIN}`)" # minio.superisi.net gibi gelen istekleri yakalar
+      rule: "Host(`minio.superisi.net`)" # minio.superisi.net gibi gelen istekleri yakalar
       entryPoints:
         - "websecure" # HTTPS (443 portu) üzerinden dinler
       service: minio-service # İstekleri 'minio-service'e yönlendirir

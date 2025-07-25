@@ -62,12 +62,12 @@ services:
       - "traefik.enable=true"
       # MinIO API endpoint'i için Traefik kuralı (Traefik üzerinden backend'in erişeceği endpoint)
       # İç network'teki 9000 portuna yönlendiriyoruz (MinIO API portu)
-      - "traefik.http.routers.minio-api.rule=Host(`minio-api.${DOMAIN}`)"
+      - "traefik.http.routers.minio-api.rule=Host(`minio-api.superisi.net`)"
       - "traefik.http.routers.minio-api.entrypoints=websecure"
       - "traefik.http.routers.minio-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.minio-api.loadbalancer.server.port=9000"
       # MinIO Konsol (UI) endpoint'i için Traefik kuralı
-      - "traefik.http.routers.minio-console.rule=Host(`minio.${DOMAIN}`)"
+      - "traefik.http.routers.minio-console.rule=Host(`minio.superisi.net`)"
       - "traefik.http.routers.minio-console.entrypoints=websecure"
       - "traefik.http.routers.minio-console.tls.certresolver=letsencrypt"
       - "traefik.http.services.minio-console.loadbalancer.server.port=9001" # Konsol portu 9001
@@ -86,7 +86,7 @@ services:
     # Backend'i dışarıya doğrudan port açmadan, Traefik üzerinden erişilebilir hale getiriyoruz.
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend-router.rule=Host(`api.${DOMAIN}`)" # api.superisi.net gibi bir adresten erişim
+      - "traefik.http.routers.backend-router.rule=Host(`api.superisi.net`)" # api.superisi.net gibi bir adresten erişim
       - "traefik.http.routers.backend-router.entrypoints=websecure"
       - "traefik.http.routers.backend-router.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend-service.loadbalancer.server.port=8000" # FastAPI'nin varsayılan çalıştığı port
