@@ -19,6 +19,7 @@ services:
     environment:
       # Let's Encrypt DNS Challenge için DigitalOcean API token'ı
       - DO_AUTH_TOKEN=${DIGITALOCEAN_API_TOKEN}
+      - DOMAIN=${DOMAIN}
     networks:
       - traefik_network # Servisler arası iletişim ağı
     restart: always # Konteynerin her zaman yeniden başlamasını sağlar
