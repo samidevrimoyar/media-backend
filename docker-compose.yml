@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Traefik Ters Proxy Servisi
+  traefik:
+    image: "traefik:v2.11" # Traefik'in belirli bir sürümünü kullanıyoruz
+    container_name: traefik
+    env_file: .env # .env dosyasındaki DIGITALOCEAN_API_TOKEN'ı kullanır
+    ports:
+      - "80:80"   # HTTP trafiği için
+      - "443:443" # HTTPS trafiği için
+      # - "8080:8080" # Traefik Dashboard'a dışarıdan erişmek isterseniz bu portu açın.
+                      # Güvenlik nedeniyle üretimde kapalı tutulması önerilir.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Docker API'sine erişim
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro # Statik Traefik konfigürasyonu
+      - ./traefik/dynamic.yaml:/etc/traefik/dynamic.yaml:ro # Dinamik Traefik konfigürasyonu
+      - traefik_acme_data:/etc/traefik/acme.json # Let's Encrypt sertifikaları ve durumu için kalıcı depolama
+    environment:
+      # Let's Encrypt DNS Challenge için DigitalOcean API token'ı
+      - DO_AUTH_TOKEN=${DIGITALOCEAN_API_TOKEN}
+    networks:
+      - traefik_network # Servisler arası iletişim ağı
+    restart: always # Konteynerin her zaman yeniden başlamasını sağlar
+
+  # PostgreSQL Veritabanı Servisi
+  db:
+    image: postgres:13 # PostgreSQL veritabanı imajı
+    container_name: db
+    env_file: .env # .env dosyasındaki POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB'yi kullanır
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Veritabanı verileri için kalıcı depolama
+    networks:
+      - traefik_network
+    healthcheck: # Veritabanının hazır olup olmadığını kontrol eder
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  # MinIO Obje Depolama Servisi
+  minio:
+    image: quay.io/minio/minio:latest # En son MinIO imajı
+    container_name: minio
+    env_file: .env # .env dosyasındaki MINIO_ROOT_USER, MINIO_ROOT_PASSWORD'u kullanır
+    command: minio server /data --console-address ":9001" # MinIO sunucusunu başlatır ve konsol portunu belirler
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data # MinIO verileri için kalıcı depolama
+    networks:
+      - traefik_network
+    # Traefik için etiketler - MinIO konsoluna ${DOMAIN} üzerinden erişim sağlar
+    labels:
+      - "traefik.enable=true"
+      # MinIO API endpoint'i için Traefik kuralı (Traefik üzerinden backend'in erişeceği endpoint)
+      # İç network'teki 9000 portuna yönlendiriyoruz (MinIO API portu)
+      - "traefik.http.routers.minio-api.rule=Host(`minio-api.${DOMAIN}`)"
+      - "traefik.http.routers.minio-api.entrypoints=websecure"
+      - "traefik.http.routers.minio-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.minio-api.loadbalancer.server.port=9000"
+      # MinIO Konsol (UI) endpoint'i için Traefik kuralı
+      - "traefik.http.routers.minio-console.rule=Host(`minio.${DOMAIN}`)"
+      - "traefik.http.routers.minio-console.entrypoints=websecure"
+      - "traefik.http.routers.minio-console.tls.certresolver=letsencrypt"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001" # Konsol portu 9001
+    healthcheck: # MinIO API'sinin hazır olup olmadığını kontrol eder
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"] # MinIO API'sinin çalıştığı varsayılan port (9000)
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: always
+
+  # FastAPI Backend Servisi
+  backend:
+    build: . # Mevcut dizindeki Dockerfile'ı kullanarak imajı oluşturur (bir sonraki adımda oluşturacağız)
+    container_name: backend
+    env_file: .env # .env dosyasındaki tüm ortam değişkenlerini backend'e aktarır
+    # Backend'i dışarıya doğrudan port açmadan, Traefik üzerinden erişilebilir hale getiriyoruz.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend-router.rule=Host(`api.${DOMAIN}`)" # api.superisi.net gibi bir adresten erişim
+      - "traefik.http.routers.backend-router.entrypoints=websecure"
+      - "traefik.http.routers.backend-router.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend-service.loadbalancer.server.port=8000" # FastAPI'nin varsayılan çalıştığı port
+    networks:
+      - traefik_network
+    # Backend'in db ve minio servisleri tamamen hazır olana kadar başlamamasını sağlar
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: always
+
+# Ortak ağ tanımı
+networks:
+  traefik_network:
+    external: true # Traefik'in dışarıdan erişilebilir ağını kullan
+
+# Kalıcı veri depolama için Docker Volume'leri
+volumes:
+  postgres_data: # PostgreSQL verileri için
+  minio_data:    # MinIO verileri için
+  traefik_acme_data: # Traefik Let's Encrypt sertifikaları için

@@ -1,0 +1,35 @@
+# traefik/dynamic.yaml
+# Traefik'in dinamik konfigürasyon dosyası
+
+http:
+  routers:
+    # FastAPI Backend için Router
+    backend-router:
+      rule: "Host(`api.${DOMAIN}`)" # api.superisi.net gibi gelen istekleri yakalar
+      entryPoints:
+        - "websecure" # HTTPS (443 portu) üzerinden dinler
+      service: backend-service # İstekleri 'backend-service'e yönlendirir
+      tls:
+        certResolver: letsencrypt # letsencrypt sertifika çözücüsünü kullanır
+
+    # MinIO Konsolu için Router
+    minio-router:
+      rule: "Host(`minio.${DOMAIN}`)" # minio.superisi.net gibi gelen istekleri yakalar
+      entryPoints:
+        - "websecure" # HTTPS (443 portu) üzerinden dinler
+      service: minio-service # İstekleri 'minio-service'e yönlendirir
+      tls:
+        certResolver: letsencrypt # letsencrypt sertifika çözücüsünü kullanır
+
+  services:
+    # FastAPI Backend Servisi Tanımı
+    backend-service:
+      loadBalancer:
+        servers:
+          - url: "http://backend:8000"  # Docker ağındaki 'backend' konteynerinin 8000 portuna yönlendirir
+
+    # MinIO Konsol Servisi Tanımı
+    minio-service:
+      loadBalancer:
+        servers:
+          - url: "http://minio:9001"  # Docker ağındaki 'minio' konteynerinin 9001 portuna (konsol portu) yönlendirir

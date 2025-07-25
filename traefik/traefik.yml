@@ -1,0 +1,49 @@
+# traefik/traefik.yml
+# Traefik'in statik konfigürasyon dosyası
+
+####################################################################################
+# test sonrası
+# level: ERROR
+# yap
+####################################################################################
+log:
+  level: DEBUG # Log seviyesi: Hata ayıklama için DEBUG, üretim için INFO veya ERROR
+
+api:
+  dashboard: true # Traefik Dashboard'u etkinleştirir.
+  insecure: false # Dashboard'a HTTPS üzerinden erişmek için 'false' olmalı.
+                  # Docker Compose'da 8080 portunu açarak erişilebilir.
+
+entryPoints:
+  # HTTP trafiği için giriş noktası
+  web:
+    address: ":80" # 80 numaralı portu dinler
+    http:
+      redirections: # Gelen tüm HTTP isteklerini HTTPS'ye yönlendirir
+        entryPoint:
+          to: websecure # websecure giriş noktasına yönlendir
+          scheme: https # HTTPS şeması kullan
+
+  # HTTPS trafiği için giriş noktası
+  websecure:
+    address: ":443" # 443 numaralı portu dinler
+
+providers:
+  # Docker sağlayıcısı: Traefik'in Docker servislerini etiketler (labels) aracılığıyla keşfetmesini sağlar
+  docker:
+    endpoint: "unix:///var/run/docker.sock" # Docker soketine erişim
+    exposedByDefault: false # Varsayılan olarak hiçbir servisi dışarıya açmaz (güvenlik)
+
+  # Dosya sağlayıcısı: dynamic.yaml gibi harici konfigürasyon dosyalarını yükler
+  file:
+    filename: "/etc/traefik/dynamic.yaml" # Dinamik konfigürasyon dosyasının yolu
+
+# Let's Encrypt sertifika çözücü tanımı (HTTPS için)
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: sami.devrim@gmail.com # Let's Encrypt bildirimleri için kendi e-posta adresinizi girin
+      storage: "/etc/traefik/acme.json" # Sertifikaların saklanacağı yer (kalıcı volume'e bağlanacak)
+      dnsChallenge: # DNS Challenge yöntemi (DigitalOcean DNS kayıtları üzerinden doğrulama)
+        provider: digitalocean # DigitalOcean DNS sağlayıcısı
+        # Buradaki DO_AUTH_TOKEN, docker-compose.yml dosyasında Traefik servisine ortam değişkeni olarak iletilir.
