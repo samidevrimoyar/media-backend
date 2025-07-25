@@ -12,6 +12,14 @@ import models.photo # Photo modelini içe aktarır
 # Router'ları içe aktarın
 from routers import auth, users, photos
 
+# MinIO istemcisini başlatmak ve bucket oluşturmak için storage modülünü import edin
+# s3_client'ı da global olarak erişmek için import etmeliyiz.
+from storage import initialize_minio_client, create_bucket_if_not_exists, s3_client
+import logging # Loglama için
+import os # Ortam değişkenleri için (MINIO_BUCKET_NAME için)
+
+logger = logging.getLogger(__name__) # main.py için bir logger oluştur
+
 app = FastAPI(
     title="Photo Gallery API", # API başlığı
     description="A simple photo gallery API with user authentication and photo management.", # API açıklaması
@@ -19,40 +27,52 @@ app = FastAPI(
 )
 
 # CORS (Cross-Origin Resource Sharing) ayarları
-# Frontend'inizin veya diğer domain'lerden gelen isteklerin bu API'ye erişmesine izin verir.
-# Güvenlik amacıyla, production ortamında 'allow_origins' listesini kısıtlamalısınız.
 origins = [
-    "http://localhost", # Geliştirme ortamı için localhost'a izin ver
-    "http://localhost:3000", # React/Vue/Angular gibi frontend uygulamaları için
-    # Eğer bir domain'iniz varsa, buraya ekleyin:
+    "http://localhost",
+    "http://localhost:3000",
     # "https://yourfrontenddomain.com",
-    # "https://api.yourbackenddomain.com", # Eğer API'niz de farklı bir subdomain'den çalışıyorsa
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # İzin verilen kaynaklar
-    allow_credentials=True, # Çerezlere izin ver (kimlik doğrulama için gerekli olabilir)
-    allow_methods=["*"], # Tüm HTTP metotlarına (GET, POST, PUT, DELETE, vb.) izin ver
-    allow_headers=["*"], # Tüm başlıklara izin ver
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Router'ları ana FastAPI uygulamasına dahil et
-app.include_router(auth.router) # Kimlik doğrulama router'ı
-app.include_router(users.router) # Kullanıcı router'ı
-app.include_router(photos.router) # Fotoğraf router'ı
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(photos.router)
 
 @app.on_event("startup")
 async def startup_event():
     """
     Uygulama başladığında çalışacak olay.
-    Veritabanı tablolarını oluşturur.
+    Veritabanı tablolarını oluşturur ve MinIO istemcisini başlatır/bucket'ı kontrol eder.
     """
-    print("Application startup: Creating database tables if they don't exist...")
-    # Veritabanında tanımlı tüm modeller için tabloları oluştur
-    # (Eğer tablolar zaten varsa, tekrar oluşturulmazlar)
+    logger.info("Application startup: Creating database tables if they don't exist...")
     Base.metadata.create_all(bind=engine)
-    print("Database tables created (or already existed).")
+    logger.info("Database tables created (or already existed).")
+
+    logger.info("Application startup: Initializing MinIO client and ensuring bucket...")
+    initialize_minio_client() # MinIO istemcisini başlatma fonksiyonunu çağır
+
+    if s3_client is None:
+        logger.critical("MinIO client failed to initialize. File upload/management will not function.")
+        # Burada uygulamanın tamamen durmasını isterseniz raise RuntimeError("...") kullanabilirsiniz.
+    else:
+        logger.info("MinIO client successfully initialized. Checking/creating bucket...")
+        bucket_name = os.getenv("MINIO_BUCKET_NAME")
+        if bucket_name:
+            if not create_bucket_if_not_exists(): # Bucket oluşturma/kontrol fonksiyonunu çağır
+                logger.critical(f"Failed to ensure MinIO bucket '{bucket_name}' exists. File operations may fail.")
+            else:
+                logger.info(f"MinIO bucket '{bucket_name}' confirmed.")
+        else:
+            logger.critical("MINIO_BUCKET_NAME environment variable is not set. Cannot ensure bucket exists.")
+
 
 @app.get("/", summary="Root endpoint")
 async def root():

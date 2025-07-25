@@ -26,27 +26,37 @@ logger = logging.getLogger(__name__)
 # MinIO, S3 API uyumlu olduğu için boto3 kütüphanesini kullanıyoruz.
 s3_client = None # Global olarak tanımlıyoruz, başlatma fonksiyonunda değeri atanacak
 
+
 def initialize_minio_client():
-    """
-    MinIO istemcisini ortam değişkenlerinden gelen bilgilerle başlatır.
-    """
-    global s3_client # s3_client global değişkenini değiştiriyoruz
+    global s3_client
+    logger.info("Attempting to initialize MinIO client...")
+    logger.info(f"MINIO_ENDPOINT: {MINIO_ENDPOINT}")
+    logger.info(f"MINIO_ROOT_USER: {MINIO_ROOT_USER}")
+    # logger.info(f"MINIO_ROOT_PASSWORD: {MINIO_ROOT_PASSWORD}") # Güvenlik nedeniyle şifreyi loglamayın
+    logger.info(f"MINIO_BUCKET_NAME: {MINIO_BUCKET_NAME}")
+
+
     if not all([MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET_NAME]):
-        logger.error("MinIO environment variables are not fully set. Cannot initialize client.")
+        logger.critical("MinIO environment variables are NOT fully set. Cannot initialize client.")
+        s3_client = None # Hata durumunda s3_client'ı None olarak bırak
         return
 
     try:
         s3_client = boto3.client(
             's3',
-            endpoint_url=f"http://{MINIO_ENDPOINT}", # Docker içinden erişim için http://minio:9000 gibi
+            endpoint_url=f"http://{MINIO_ENDPOINT}",
             aws_access_key_id=MINIO_ROOT_USER,
             aws_secret_access_key=MINIO_ROOT_PASSWORD,
-            region_name='us-east-1' # MinIO için bölge adı önemli değil, bir placeholder
+            region_name='us-east-1'
         )
-        logger.info("MinIO client initialized successfully.")
+        # İstemci başarılı bir şekilde oluşturulduktan sonra bir test işlemi yapalım
+        # Örneğin, MinIO'ya bir istek göndererek bağlantıyı doğrulayalım
+        s3_client.list_buckets() # Bu, bağlantının çalışıp çalışmadığını test eder
+        logger.info("MinIO client initialized successfully and connected to MinIO server.")
     except Exception as e:
-        logger.error(f"Error initializing MinIO client: {e}")
+        logger.critical(f"FATAL ERROR: MinIO client initialization failed: {e}")
         s3_client = None
+
 
 def create_bucket_if_not_exists():
     """
