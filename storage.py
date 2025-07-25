@@ -18,11 +18,6 @@ MINIO_ROOT_USER = os.getenv("MINIO_ROOT_USER")
 MINIO_ROOT_PASSWORD = os.getenv("MINIO_ROOT_PASSWORD")
 MINIO_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME")
 
-# Debug için bu print'leri ekleyin:
-print(f"DEBUG: MinIO Endpoint: {minio_endpoint}")
-print(f"DEBUG: MinIO Access Key: {minio_access_key}")
-# print(f"DEBUG: MinIO Secret Key: {minio_secret_key}") # Güvenlik nedeniyle şifreyi loglamayın
-
 # Loglama ayarları
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
