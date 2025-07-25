@@ -62,6 +62,7 @@ def create_bucket_if_not_exists():
     """
     Belirtilen bucket'ın (kova) MinIO'da varlığını kontrol eder, yoksa oluşturur.
     """
+    logger.info(f"Attempting to check/create bucket: {MINIO_BUCKET_NAME}") # Yeni debug log
     if s3_client is None:
         logger.error("MinIO client is not initialized. Cannot create bucket.")
         return False
@@ -69,18 +70,20 @@ def create_bucket_if_not_exists():
         s3_client.head_bucket(Bucket=MINIO_BUCKET_NAME) # Bucket'ın varlığını kontrol et
         logger.info(f"Bucket '{MINIO_BUCKET_NAME}' already exists.")
     except ClientError as e:
-        error_code = e.response['Error']['Code']
+        error_code = e.response.get('Error', {}).get('Code')
+        logger.warning(f"Bucket '{MINIO_BUCKET_NAME}' does not exist or access error: {error_code}. Attempting to create.") # Yeni debug log
         if error_code == '404' or error_code == 'NoSuchBucket': # Bucket bulunamadı hatası
             try:
                 s3_client.create_bucket(Bucket=MINIO_BUCKET_NAME)
                 logger.info(f"Bucket '{MINIO_BUCKET_NAME}' created successfully.")
             except ClientError as ce:
-                logger.error(f"Error creating bucket '{MINIO_BUCKET_NAME}': {ce}")
+                logger.critical(f"FATAL ERROR: Error creating bucket '{MINIO_BUCKET_NAME}': {ce}") # Daha kritik log seviyesi
                 return False
         else: # Diğer hatalar
-            logger.error(f"Error checking bucket '{MINIO_BUCKET_NAME}': {e}")
+            logger.critical(f"FATAL ERROR: Error checking bucket '{MINIO_BUCKET_NAME}': {e}") # Daha kritik log seviyesi
             return False
     return True
+
 
 def upload_file(file_data: BytesIO, object_name: str, content_type: str) -> Optional[str]:
     """
