@@ -8,6 +8,7 @@ from database import Base, engine # Veritabanı modelimizin temeli ve motoru
 # Tüm SQLAlchemy modellerini içe aktarın ki Base.metadata.create_all onları tanısın
 import models.user # User modelini içe aktarır
 import models.photo # Photo modelini içe aktarır
+import models.word # Word modelini içe aktarır
 
 # Router'ları içe aktarın
 from routers import auth, users, photos
@@ -49,6 +50,7 @@ app.add_middleware(
 app.include_router(auth.router) # Kimlik doğrulama router'ı
 app.include_router(users.router) # Kullanıcı router'ı
 app.include_router(photos.router) # Fotoğraf router'ı
+app.include_router(words.router) # Kelime router'ı
 
 @app.on_event("startup")
 async def startup_event():
