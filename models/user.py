@@ -21,6 +21,7 @@ class User(Base):
     # 'Photo' modelini henüz tanımlamadık, bu yüzden bir string olarak referans veriyoruz.
     # uselist=True: varsayılan, bir kullanıcı birden fazla fotoğrafa sahip olabilir.
     photos = relationship("Photo", back_populates="owner")
+    words = relationship("Word", back_populates="created_by_user")
 
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}', is_admin={self.is_admin})>"
