@@ -3,7 +3,7 @@
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship # İlişkileri tanımlamak için
-from pydantic import BaseModel, EmailStr # Pydantic modelleri ve e-posta doğrulama için
+from pydantic import BaseModel # Pydantic modelleri ve e-posta doğrulama için
 from typing import List, Optional # Tip ipuçları için
 from datetime import datetime # Tarih ve saat objeleri için
 
@@ -24,7 +24,7 @@ class Word(Base):
 # Pydantic Şemaları (API istek ve yanıtları için)
 
 # Kelime oluşturma isteği için şema (Client'tan gelen veri)
-class WordCreate(PydanticBaseModel):
+class WordCreate(BaseModel):
     """
     Yeni bir kelime kaydı oluşturmak için kullanılan veri şeması.
     Client'ın göndereceği verileri tanımlar.
@@ -38,7 +38,7 @@ class WordCreate(PydanticBaseModel):
             }
         }
 
-class WordUpdate(PydanticBaseModel):
+class WordUpdate(BaseModel):
     """
     Mevcut bir kelime kaydını güncellemek için kullanılan veri şeması.
     Alanlar Optional olduğu için sadece gönderilen alanlar güncellenir.
@@ -53,7 +53,7 @@ class WordUpdate(PydanticBaseModel):
             }
         }
 
-class WordResponse(PydanticBaseModel):
+class WordResponse(BaseModel):
     """
     API'dan kelime kaydı döndürülürken kullanılan veri şeması.
     Veritabanındaki tüm ilgili alanları içerir.
