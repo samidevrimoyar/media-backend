@@ -2,7 +2,7 @@
 # Kelime yönetimi endpoint'leri
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session # Veritabanı oturumu için
 
 from database import get_db # Veritabanı oturumu bağımlılığı
@@ -51,7 +51,6 @@ async def create_word(
 @router.get("/", response_model=List[WordResponse], summary="Retrieve all word entries")
 async def get_words(
     db: Session = Depends(get_db), # Veritabanı oturumu bağımlılığı
-    skip: int = Query(0, ge=0), # Listelemede atlanacak kayıt sayısı (varsayılan 0, negatif olamaz)
     limit: int = Query(100, ge=1, le=100) # Listelenecek maksimum kayıt sayısı (varsayılan 100, 1-100 arası)
 ):
     """
