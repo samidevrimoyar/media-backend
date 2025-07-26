@@ -1,11 +1,11 @@
 # models/word.py
 # Kelime veritabanı modeli (SQLAlchemy) ve Pydantic şemaları
 
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship # İlişkileri tanımlamak için
 from pydantic import BaseModel, EmailStr # Pydantic modelleri ve e-posta doğrulama için
 from typing import List, Optional # Tip ipuçları için
-import DateTime
+from datetime import datetime # Tarih ve saat objeleri için
 
 from database import Base # Veritabanı modelimizin temel sınıfı
 
