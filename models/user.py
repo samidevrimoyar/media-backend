@@ -15,7 +15,10 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True) # Benzersiz ID, birincil anahtar
     username = Column(String, unique=True, index=True, nullable=False) # Kullanıcı adı, benzersiz, boş olamaz
     hashed_password = Column(String, nullable=False) # Hashlenmiş şifre, boş olamaz
+    email = Column(String, unique=True, index=True, nullable=True) # E-posta, benzersiz olabilir
     is_admin = Column(Boolean, default=False) # Yönetici mi? Varsayılan: Hayır
+    is_active = Column(Boolean, default=True) # Kullanıcı hesabının aktif olup olmadığı
+
 
     # Kullanıcının sahip olduğu fotoğraflarla ilişki
     # 'Photo' modelini henüz tanımlamadık, bu yüzden bir string olarak referans veriyoruz.
@@ -35,14 +38,15 @@ class UserBase(BaseModel):
 # Kullanıcı oluşturma şeması (kayıt için)
 class UserCreate(UserBase):
     password: str # Şifre (hashlenmeden önce)
-    is_admin: Optional[bool] = False # Admin olarak oluşturma seçeneği, varsayılan false
+    email: Optional[str] = None
+    # is_admin: Optional[bool] = False # Admin olarak oluşturma seçeneği, varsayılan false
 
     class Config:
         json_schema_extra = {
             "example": {
                 "username": "testuser",
                 "password": "securepassword123",
-                "is_admin": False
+                "email": "newuser@example.com"
             }
         }
 
@@ -60,8 +64,11 @@ class UserLogin(UserBase):
 
 # API yanıtı için kullanıcı şeması (şifre hash'ini göstermez)
 class UserResponse(UserBase):
-    id: int # Kullanıcı ID'si
-    is_admin: bool # Yönetici durumu
+    id: int
+    username: str
+    email: Optional[str] = None
+    is_active: bool
+    is_admin: bool
 
     class Config:
         from_attributes = True # SQLAlchemy modellerinden Pydantic modellerine dönüşüm için (eski adıyla orm_mode = True)
@@ -69,6 +76,8 @@ class UserResponse(UserBase):
             "example": {
                 "id": 1,
                 "username": "testuser",
+                "email": "test@example.com",
+                "is_active": True,
                 "is_admin": False
             }
         }
