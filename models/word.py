@@ -30,6 +30,8 @@ class WordCreate(BaseModel):
     Client'ın göndereceği verileri tanımlar.
     """
     word_text: str # Zorunlu: Kelimenin metni
+    create_date: datetime
+    editor: int
 
     class Config:
         json_schema_extra = {
