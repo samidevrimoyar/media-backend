@@ -11,7 +11,7 @@ import models.photo # Photo modelini içe aktarır
 import models.word # Word modelini içe aktarır
 
 # Router'ları içe aktarın
-from routers import auth, users, photos
+from routers import auth, users, photos, words
 
 # MinIO istemcisini başlatmak ve bucket oluşturmak için storage modülünü import edin
 # s3_client'ı artık doğrudan import ETMİYORUZ. Onun yerine get_s3_client kullanacağız.
