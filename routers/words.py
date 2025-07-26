@@ -4,6 +4,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session # Veritabanı oturumu için
+from sqlalchemy.orm import joinedload
 
 from database import get_db # Veritabanı oturumu bağımlılığı
 from models.word import Word, WordResponse # Word modeli ve yanıt şeması
