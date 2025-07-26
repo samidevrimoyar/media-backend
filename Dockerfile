@@ -11,7 +11,6 @@ WORKDIR /app
 # Bağımlılıklar dosyasını kopyalayın ve Python paketlerini kurun
 # pip cache'ini kullanmayarak imaj boyutunu küçültün
 COPY requirements.txt .
-RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Uygulamanın geri kalan kodunu çalışma dizinine kopyalayın
