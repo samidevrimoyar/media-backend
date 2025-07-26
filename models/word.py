@@ -5,7 +5,7 @@ from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import relationship # İlişkileri tanımlamak için
 from pydantic import BaseModel, EmailStr # Pydantic modelleri ve e-posta doğrulama için
 from typing import List, Optional # Tip ipuçları için
-from datetime import datetime
+import DateTime
 
 from database import Base # Veritabanı modelimizin temel sınıfı
 
