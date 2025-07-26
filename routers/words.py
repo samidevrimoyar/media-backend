@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session # Veritabanı oturumu için
 from database import get_db # Veritabanı oturumu bağımlılığı
 from models.word import Word, WordResponse # Word modeli ve yanıt şeması
 # Kimlik doğrulama bağımlılıklarını auth router'ından içe aktarın
+from models.user import User # User modelini içe aktarın (ilişki için)
 from routers.auth import get_current_user, get_current_admin_user
 from models.word import Word, WordCreate, WordUpdate, WordResponse # Kelime modelleri ve Pydantic şemaları
 
